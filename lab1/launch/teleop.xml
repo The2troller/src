@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/minimal_simulator_py.xml" />
+  <include file="$(find-pkg-share very_simple_robot_simulator)/launch/world_state.xml" />
+  <node pkg="lab1" exec="teleop.py" name="teleop" output="screen" launch-prefix="xterm -e" />
+</launch>

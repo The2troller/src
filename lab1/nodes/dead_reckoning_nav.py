@@ -2,19 +2,24 @@
 #? ^ Le dice a bash "ejecuta esto con python3" ^
 import rclpy
 from rclpy.node import Node
-
 from geometry_msgs.msg import Twist, PoseArray, Pose
 from nav_msgs.msg import Odometry
 import numpy as np
 from threading import Thread
 
+
+def normalizar(angulo):
+    # basicamente escoge el angulo mas corto en el que hay que rotar
+    return np.arctan2(np.sin(angulo), np.cos(angulo))
+
 class Movement_Node(Node):
 
     def __init__(self):
-        super().__init__("node_name")
+        super().__init__("dead_reckoning_nav") # le cambie el nombre de "Node_name a ..."
         self.init_communications()
         self.setup_parameters()
         
+    
     def setup_parameters(self):
         self.velocity = Twist()
         self.velocity.linear.x = 0.0
@@ -24,7 +29,7 @@ class Movement_Node(Node):
         self.pos_odo_active = False
         self.pos_real_active = False
         self.say_pos_timer = self.create_timer( 2.0, self.say_pos )
-        self.offset = 1.0
+        self.offset = 1.1111
         self.predict_pose = [0, 0, 0]
 
     def init_communications(self):
@@ -54,28 +59,38 @@ class Movement_Node(Node):
         self.velocity.angular.z = 0.0
         self.publisher.publish(self.velocity)
         
+
         
+    def giro(self, angulo):
+        if abs(angulo) < 0.01:  
+            return []   # verificamos si hay que girar o no 
+        if angulo > 0:
+            w = self.turn_vel 
+        if angulo > 0:
+            -self.turn_vel   # direccion del giro w positivo izquierda negativo derecha
+        t = abs(angulo) / self.turn_vel * self.offset # tiempo a girar con el offset
+        return [(0.0, w, t)]   # retorna la velocidad angular y por cuanto tiempo para llegar a la pos
+
     def mover_robot_a_destino(self, goal_pose):
-        speed_command_list = []
-        x = goal_pose[0]
-        y = goal_pose[1]
-        angle = goal_pose[2]
-        seconds = (x - self.predict_pose[0]) / self.vel
-        if abs(x - self.predict_pose[0]) >= 0.5 :
-            if seconds >= 0.0:
-                speed_command_list.append((self.vel, 0.0, seconds))
-            else:
-                speed_command_list.append((-1 * self.vel, 0.0, abs(seconds)))
-        seconds = (y - self.predict_pose[1]) / self.vel
-        if abs(y - self.predict_pose[1]) >= 0.5 :
-            speed_command_list.append((0.0, self.turn_vel, np.deg2rad(90.0) * self.offset))
-            if seconds >= 0.0:
-                speed_command_list.append((self.vel, 0.0, seconds))
-            else:
-                speed_command_list.append((-1 * self.vel, 0.0, abs(seconds)))
-            speed_command_list.append((0.0, -1 * self.turn_vel,  np.deg2rad(90.0) * self.offset))
-        self.aplicar_velocidad(speed_command_list)
-        
+        x, y, theta = goal_pose # basicamente a donde queremos ir
+        x0, y0, th0 = self.predict_pose # mi posicion actual
+        dx = x - x0
+        dy = y - y0 # distancia total a recorrer en cada eje
+        distancia = np.hypot(dx, dy) # pitagoras simplificado gracias np
+        comandos = []
+        angulo_ruta = th0   
+        if distancia > 0.001:
+            angulo_ruta = np.arctan2(dy, dx) # hacia donde esta el punto
+            comandos = comandos + self.giro(normalizar(angulo_ruta - th0)) # mirar hacia el punto
+            comandos.append((self.vel, 0.0, distancia / self.vel)) # avanzar
+        comandos = comandos + self.giro(normalizar(theta - angulo_ruta)) # girar al angulo final
+        self.get_logger().info(f"Hacia ({x:.2f}, {y:.2f}, {np.rad2deg(theta):.0f}°): {comandos}")
+        self.aplicar_velocidad(comandos)
+        self.predict_pose = [x, y, theta]
+
+
+
+
     def accion_mover_cb(self, coordenates: PoseArray):
         for coord in coordenates.poses:
             x = coord.position.x

@@ -14,6 +14,7 @@ find_package(ament_cmake REQUIRED)
 ########### BASE FOR ADDING NODES
 install( PROGRAMS nodes/dead_reckoning_nav.py DESTINATION lib/${PROJECT_NAME} )
 install( PROGRAMS nodes/pose_loader.py DESTINATION lib/${PROJECT_NAME} )
+install( PROGRAMS nodes/teleop.py DESTINATION lib/${PROJECT_NAME} )
 
 #Install launch files
 install( DIRECTORY launch DESTINATION share/${PROJECT_NAME}/ )

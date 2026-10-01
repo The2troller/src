@@ -3,19 +3,20 @@
 import rclpy
 from rclpy.node import Node
 
+
 from geometry_msgs.msg import PoseArray, Pose
 
 class Pose_Loader(Node): 
 
     def __init__(self):
-        super().__init__("node_name")
+        super().__init__("pose_loader") # le cambie el nombre de "node_name a ..."
         self.init_communications()
         self.setup_parameters()
-        self.timer = self.create_timer(2.0, self.start_send)
+        self.timer = self.create_timer(2.0, self.start_send) # rutas relativas ojo
 
     def start_send(self):
         self.timer.cancel()
-        self.send_data("src/lab1/text_files/box.txt")
+        self.send_data("src/lab1/text_files/box.txt") # rutas relativas ojo
 
     def setup_parameters(self):
         self.sending_data = PoseArray()
@@ -28,7 +29,7 @@ class Pose_Loader(Node):
                 self.file[i] = self.file[i].strip().split(",")
                 coord = Pose()
                 coord.position.x = float(self.file[i][0])
-                coord.position.y = float(self.file[i][1])
+                coord.position.y = float(self.file[i][1]) # arreglo z ya que es el angulo
                 coord.position.z = float(self.file[i][2])
                 data_array.append(coord)
         self.sending_data.poses = data_array
