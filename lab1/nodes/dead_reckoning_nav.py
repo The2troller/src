@@ -68,12 +68,12 @@ class Movement_Node(Node):
                 speed_command_list.append((-1 * self.vel, 0.0, abs(seconds)))
         seconds = (y - self.predict_pose[1]) / self.vel
         if abs(y - self.predict_pose[1]) >= 0.5 :
-            speed_command_list.append((0.0, self.turn_vel, np.deg2rad(90.0) + self.offset))
+            speed_command_list.append((0.0, self.turn_vel, np.deg2rad(90.0) * self.offset))
             if seconds >= 0.0:
                 speed_command_list.append((self.vel, 0.0, seconds))
             else:
                 speed_command_list.append((-1 * self.vel, 0.0, abs(seconds)))
-            speed_command_list.append((0.0, -1 * self.turn_vel,  np.deg2rad(90.0) + self.offset))
+            speed_command_list.append((0.0, -1 * self.turn_vel,  np.deg2rad(90.0) * self.offset))
         self.aplicar_velocidad(speed_command_list)
         
     def accion_mover_cb(self, coordenates: PoseArray):
