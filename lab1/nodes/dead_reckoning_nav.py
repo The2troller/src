@@ -25,7 +25,8 @@ class Movement_Node(Node):
         self.pos_odo_active = False
         self.pos_real_active = False
         self.say_pos_timer = self.create_timer( 2.0, self.say_pos )
-        self.offset = 0.16
+        self.offset = 0.0
+        self.predict_pose = [0, 0, 0]
 
     def init_communications(self):
         self.publisher = self.create_publisher( Twist, "/cmd_vel", 10 )
@@ -34,13 +35,22 @@ class Movement_Node(Node):
         self.subscription_real = self.create_subscription(Pose, "/real_pose", self.read_real, 1)
 
     def aplicar_velocidad(self, speed_command_list):
+        func_rate = self.create_rate(100)
         for command in speed_command_list:
-            actual_time = self.get_clock().now().nanoseconds / 1e9
+            init_time = self.get_clock().now().nanoseconds / 1e9
             self.velocity.linear.x = command[0]
             self.velocity.angular.z = command[1]
-            while self.get_clock().now().nanoseconds / 1e9 - actual_time <= command[2]:
+            current_time = self.get_clock().now().nanoseconds / 1e9
+            last_cycle_time = current_time
+            while self.get_clock().now().nanoseconds / 1e9 - init_time <= command[2]:
+                current_time = self.get_clock().now().nanoseconds / 1e9
+                time_passed = current_time - last_cycle_time
+                last_cycle_time = current_time
+                self.predict_pose[0] += time_passed * command[0] * np.cos(self.predict_pose[2])
+                self.predict_pose[1] += time_passed * command[0] * np.sin(self.predict_pose[2])
+                self.predict_pose[2] += time_passed * command[1]
                 self.publisher.publish(self.velocity)
-                time.sleep(0.01)
+                func_rate.sleep()
         self.velocity.linear.x = 0.0
         self.velocity.angular.z = 0.0
         self.publisher.publish(self.velocity)
@@ -50,14 +60,14 @@ class Movement_Node(Node):
         x = goal_pose[0]
         y = goal_pose[1]
         angle = goal_pose[2]
-        seconds = (x - self.odo_x) / self.vel
-        if abs(x - self.odo_x) >= 0.5 :
+        seconds = (x - self.predict_pose[0]) / self.vel
+        if abs(x - self.predict_pose[0]) >= 0.5 :
             if seconds >= 0.0:
                 speed_command_list.append((self.vel, 0.0, seconds))
             else:
                 speed_command_list.append((-1 * self.vel, 0.0, abs(seconds)))
-        seconds = (y - self.odo_y) / self.vel
-        if abs(y - self.odo_y) >= 0.5 :
+        seconds = (y - self.predict_pose[1]) / self.vel
+        if abs(y - self.predict_pose[1]) >= 0.5 :
             speed_command_list.append((0.0, self.turn_vel, np.deg2rad(90.0) + self.offset))
             if seconds >= 0.0:
                 speed_command_list.append((self.vel, 0.0, seconds))
@@ -94,6 +104,7 @@ class Movement_Node(Node):
             self.get_logger().info( 'odometry pos (%f, %f, %f)' % (self.odo_x, self.odo_y, self.odo_z) )
         if self.pos_real_active:
             self.get_logger().info( 'real pos (%f, %f, %f)' % (self.real_x, self.real_y, self.real_z) )
+        self.get_logger().info( 'predicted pose (%f, %f, %f)' % (self.predict_pose[0], self.predict_pose[1], self.predict_pose[2]) )
 
 def main(args=None):
     rclpy.init(args=args) #? Inicializa ROS
