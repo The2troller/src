@@ -5,7 +5,6 @@ from rclpy.node import Node
 
 from geometry_msgs.msg import Twist, PoseArray, Pose
 from nav_msgs.msg import Odometry
-import time
 import numpy as np
 from threading import Thread
 
@@ -25,7 +24,7 @@ class Movement_Node(Node):
         self.pos_odo_active = False
         self.pos_real_active = False
         self.say_pos_timer = self.create_timer( 2.0, self.say_pos )
-        self.offset = 0.0
+        self.offset = 1.0
         self.predict_pose = [0, 0, 0]
 
     def init_communications(self):
@@ -54,6 +53,7 @@ class Movement_Node(Node):
         self.velocity.linear.x = 0.0
         self.velocity.angular.z = 0.0
         self.publisher.publish(self.velocity)
+        
         
     def mover_robot_a_destino(self, goal_pose):
         speed_command_list = []
