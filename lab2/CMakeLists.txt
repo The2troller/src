@@ -12,7 +12,9 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 install(PROGRAMS nodes/movement_node.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS nodes/pid_controller.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS nodes/pi_controller_lin.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS nodes/pi_controller_ang.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS nodes/pose_loader.py DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 

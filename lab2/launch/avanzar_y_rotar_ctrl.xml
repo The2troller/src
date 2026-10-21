@@ -6,6 +6,7 @@ very_simple_robot_simulator)/launch/openni_simulator.xml" />
 <include file="$(find-pkg-share
 very_simple_robot_simulator)/launch/world_state.xml" />
 <node pkg="lab2" exec="movement_node.py" name="movement_node" />
-<node pkg="lab2" exec="pid_controller.py" name="controller" />
+<node pkg="lab2" exec="pi_controller_lin.py" name="pi_controller_lin" />
+<node pkg="lab2" exec="pi_controller_ang.py" name="pi_controller_ang" />
 <node pkg="lab2" exec="pose_loader.py" name="pose_loader" />
 </launch>

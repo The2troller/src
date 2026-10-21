@@ -29,19 +29,19 @@ class Movement_Node(Node):
         self.mode = None # para lineal: "lin", para angular: "ang"
 
     def init_communications(self):
-        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10)
-        self.goal_sub = self.create_subscription(PoseArray, "goal_list", self.start_moving_node, 10)
-        self.odom_sub = self.create_subscription(Odometry, "/odom", self.read_odometry, 10)
+        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 1)
+        self.goal_sub = self.create_subscription(PoseArray, "goal_list", self.start_moving_node, 1)
+        self.odom_sub = self.create_subscription(Odometry, "/odom", self.read_odometry, 1)
 
         # Comunicaciones con controlador desplazamieneto lineal
-        self.setpoint_pub_lin = self.create_publisher(Float64, "lin/setpoint", 10)
-        self.state_pub_lin = self.create_publisher(Float64, "lin/state", 10)
-        self.control_sub_lin = self.create_subscription(Float64, "lin/control_effort", self.lin_effort_cb, 10)
+        self.setpoint_pub_lin = self.create_publisher(Float64, "lin/setpoint", 1)
+        self.state_pub_lin = self.create_publisher(Float64, "lin/state", 1)
+        self.control_sub_lin = self.create_subscription(Float64, "lin/control_effort", self.lin_effort_cb, 1)
         
         # Comunicaciones con controlador desplazamieneto rotacional
-        self.setpoint_pub_ang = self.create_publisher(Float64, "ang/setpoint", 10)
-        self.state_pub_ang = self.create_publisher(Float64, "ang/state", 10)
-        self.control_sub_ang = self.create_subscription(Float64, "ang/control_effort", self.ang_effort_cb, 10)
+        self.setpoint_pub_ang = self.create_publisher(Float64, "ang/setpoint", 1)
+        self.state_pub_ang = self.create_publisher(Float64, "ang/state", 1)
+        self.control_sub_ang = self.create_subscription(Float64, "ang/control_effort", self.ang_effort_cb, 1)
 
     def aplicar_velocidad(self, displacement_list):
         # Esperamos a que termine el desplazamiento actual
