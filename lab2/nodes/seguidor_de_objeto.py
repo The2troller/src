@@ -20,7 +20,7 @@ class Seguidor_obj(Node):
 
     def init_communications(self):
         self.subscription_goal = self.create_subscription(Point, "blue_square_position", self.seguir, 1)
-        self.cmd_vel_mux_pub = self.create_publisher( Twist, '/cmd_vel', 10 )
+        self.cmd_vel_mux_pub = self.create_publisher( Twist, '/commands/velocity', 10 )
 
     def seguir(self, msg: Point):
         self.x = msg.x
