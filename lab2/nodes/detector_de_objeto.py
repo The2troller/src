@@ -6,6 +6,7 @@ from cv_bridge import CvBridge
 import cv2
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
+from rclpy.qos import qos_profile_sensor_data
 
 class Detector_obj(Node): 
 
@@ -20,7 +21,7 @@ class Detector_obj(Node):
 
     def init_communications(self):
         self.publisher = self.create_publisher( Point, "blue_square_position", 10 ) #cambiar tipo de msg
-        self.subscription_goal = self.create_subscription(Image, "/camera/rgb/image_color", self.img_callback, 1)
+        self.subscription_goal = self.create_subscription(Image, "/camera/rgb/image_color", self.img_callback, qos_profile_sensor_data)
         self.bridge = CvBridge()
         
     def img_callback(self, msg):
