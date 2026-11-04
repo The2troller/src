@@ -1,1 +1,0 @@
-/home/rena/ros2_ws/src/build/lab1/ament_cmake_core/lab1Config-version.cmake

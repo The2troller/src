@@ -1,1 +1,0 @@
-/home/rena/ros2_ws/src/build/lab1/ament_cmake_environment_hooks/local_setup.zsh

@@ -1,9 +1,0 @@
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/uninstall.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/lab1_uninstall.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/test.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/edit_cache.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/rebuild_cache.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/list_install_components.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/install.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/install/local.dir
-/home/rena/ros2_ws/src/build/lab1/CMakeFiles/install/strip.dir
