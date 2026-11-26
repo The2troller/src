@@ -13,9 +13,9 @@ class Explorer_node(Node):
 
     def __init__(self):
         super().__init__("explore_node")
-        self.init_communications()
         self.setup_parameters()
-
+        self.init_communications()
+        
     def setup_parameters(self):
         self.max_angle = 28.5
         self.rotate_msg = Twist()
@@ -61,7 +61,7 @@ class Explorer_node(Node):
                 #d_moved = Pose()
                 #self.publisher_displacement.publish(d_moved)
     def rotate_handler(self):
-        if self.rotating = True
+        if self.rotating == True
             err = self.target_angle - self.theta
             if abs(err) > 1.0:
                 self.publisher_vel.publish(self.rotate_msg)
