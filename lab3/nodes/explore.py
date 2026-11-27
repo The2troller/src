@@ -28,6 +28,10 @@ class Explorer_node(Node):
         self.front_rs = []
         self.fowarding = False
         self.rotating = False
+        self.theta = None
+        self.last_x = None
+        self.last_y = None
+        self.last_theta = None
 
     def init_communications(self):
         self.publisher_displacement = self.create_publisher(Pose, "/displacement", 10 )
@@ -41,11 +45,12 @@ class Explorer_node(Node):
     def decide_move(self, msg):
         if self.fowarding or self.rotating:
             return
-        if self.x == None or self.y == None:
+        if self.x == None or self.y == None or self.theta == None:
             return
             
-        last_x = self.x
-        last_y = self.y
+        self.last_x = self.x
+        self.last_y = self.y
+        self.last_theta = self.theta
 
         if self.front_rs == []:
             self.rotating = False
@@ -67,10 +72,10 @@ class Explorer_node(Node):
                 self.publisher_vel.publish(self.foward_msg)
             else:
                 self.fowarding = False
-                #add send displacement
-                d_moved = Pose()
+                d_moved = self.get_displacement()
                 self.publisher_displacement.publish(d_moved)
                 self.publisher_vel.publish(Twist())
+
     def rotate_handler(self):
         if self.rotating == True:
             err = (self.target_angle - self.theta + 180.0) % 360.0 - 180.0
@@ -78,10 +83,21 @@ class Explorer_node(Node):
                 self.publisher_vel.publish(self.rotate_msg)
             else:
                 self.rotating = False
-                #add send displacement
-                d_moved = Pose()
+                d_moved = self.get_displacement()
                 self.publisher_displacement.publish(d_moved)
                 self.publisher_vel.publish(Twist())
+
+    def get_displacement(self):  
+        dx = self.x - self.last_x
+        dy = self.y - self.last_y
+        dtheta = (self.theta - self.last_theta + 180.0) % 360.0 - 180.0
+        rad_init = np.deg2rad(self.last_theta)
+        d_moved = Pose()
+        d_moved.position.x = float(dx * np.cos(rad_init) + dy * np.sin(rad_init))
+        d_moved.position.y = float(-dx * np.sin(rad_init) + dy * np.cos(rad_init))
+        d_moved.orientation.z = float(np.sin(np.deg2rad(dtheta) / 2.0))
+        d_moved.orientation.w = float(np.cos(np.deg2rad(dtheta) / 2.0))
+        return d_moved
 
     def odom_rec(self, msg):
         self.x = msg.pose.pose.position.x
