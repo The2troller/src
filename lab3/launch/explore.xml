@@ -1,4 +1,4 @@
 <launch>
    <node pkg="lab3" exec="explore.py" name="explore_node" />
-      <node pkg="lab3" exec="client.py" name="explore_node" />
+   <node pkg="lab3" exec="client.py" name="client_node" />
 </launch>

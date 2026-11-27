@@ -19,13 +19,15 @@ class Explorer_node(Node):
     def setup_parameters(self):
         self.max_angle = 28.5
         self.rotate_msg = Twist()
-        self.rotate_msg.angular.z = 0.1
+        self.rotate_msg.angular.z = 0.8
         self.foward_msg = Twist()
-        self.foward_msg.linear.x = 0.1
+        self.foward_msg.linear.x = 0.2
         self.F_RANGE = 10.0
         self.x = None
         self.y = None
         self.front_rs = []
+        self.fowarding = False
+        self.rotating = False
 
     def init_communications(self):
         self.publisher_displacement = self.create_publisher(Pose, "/displacement", 10 )
@@ -33,51 +35,61 @@ class Explorer_node(Node):
         self.publisher_vel = self.create_publisher(Twist, "/cmd_vel", 10)
         self.subscription_odom = self.create_subscription(Odometry, "/odom", self.odom_rec, 1)
         self.subscription_scan = self.create_subscription(LaserScan, "/scan", self.scan_rec, 1)
-        self.foward_timer = self.create_timer(1.0, self.foward_handler)
-        self.rotate_timer = self.create_timer(1.0, self.rotate_handler)
+        self.foward_timer = self.create_timer(0.05, self.foward_handler)
+        self.rotate_timer = self.create_timer(0.05, self.rotate_handler)
         
     def decide_move(self, msg):
-        if self.x == None or self.y == None or self.front_rs == []:
+        if self.fowarding or self.rotating:
+            return
+        if self.x == None or self.y == None:
             return
             
         last_x = self.x
         last_y = self.y
-        
-        if min(self.front_rs) < 0.5:
-            self.target_angle = self.theta + 90.0
-            self.rotating = True
-            self.fowarding = False
-        else:
+
+        if self.front_rs == []:
             self.rotating = False
             self.fowarding = True
+        else:
+            if min(self.front_rs) < 0.5:
+                self.target_angle = self.theta + 90.0
+                self.rotating = True
+                self.fowarding = False
+            else:
+                self.rotating = False
+                self.fowarding = True
 
     def foward_handler(self):
         if self.fowarding == True:
-            if min(self.front_rs) >= 0.5:
+            if self.front_rs == []:
+                self.publisher_vel.publish(self.foward_msg)
+            elif min(self.front_rs) >= 0.5:
                 self.publisher_vel.publish(self.foward_msg)
             else:
                 self.fowarding = False
                 #add send displacement
-                #d_moved = Pose()
-                #self.publisher_displacement.publish(d_moved)
+                d_moved = Pose()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
     def rotate_handler(self):
-        if self.rotating == True
-            err = self.target_angle - self.theta
+        if self.rotating == True:
+            err = (self.target_angle - self.theta + 180.0) % 360.0 - 180.0
             if abs(err) > 1.0:
                 self.publisher_vel.publish(self.rotate_msg)
             else:
                 self.rotating = False
                 #add send displacement
-                #d_moved = Pose()
-                #self.publisher_displacement.publish(d_moved)
+                d_moved = Pose()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
 
     def odom_rec(self, msg):
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
         q = msg.pose.pose.orientation
-        sin_ = 2.0 * (q.w * q.z + q.x * q.z)
+        sin_ = 2.0 * (q.w * q.z + q.x * q.y)
         cos_ = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-        self.theta = np.atan2(sin_, cos_)
+        self.theta = np.rad2deg(np.arctan2(sin_, cos_))
         
     def scan_rec(self, msg: LaserScan):
         self.angle_inc = msg.angle_increment

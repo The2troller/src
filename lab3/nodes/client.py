@@ -19,12 +19,24 @@ class Client_node(Node):
     def init_communications(self):
         self.publisher = self.create_publisher(Empty, "/explore", 10 ) #cambiar tipo de msg
         self.subscription_goal = self.create_subscription(Pose, "/displacement", self.recive_pos, 1)
-        
+        self.started = False
+        self.retry_timer = self.create_timer(0.5, self.kickstart)
+
     def recive_pos(self, msg):
         self.publisher.publish(Empty())
 
     def start(self):
         self.timer.cancel()
+        self.publisher.publish(Empty())
+
+    def kickstart(self):
+        if not self.started:
+            self.publisher.publish(Empty())
+
+    def recive_pos(self, msg):
+        if not self.started:
+            self.started = True
+            self.retry_timer.cancel()
         self.publisher.publish(Empty())
 
 def main(args=None):
