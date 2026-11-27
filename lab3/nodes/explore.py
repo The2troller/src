@@ -22,7 +22,7 @@ class Explorer_node(Node):
         self.rotate_msg.angular.z = 0.8
         self.foward_msg = Twist()
         self.foward_msg.linear.x = 0.2
-        self.F_RANGE = 10.0
+        self.F_RANGE = 20.0
         self.x = None
         self.y = None
         self.front_rs = []
@@ -32,6 +32,9 @@ class Explorer_node(Node):
         self.last_x = None
         self.last_y = None
         self.last_theta = None
+        self.STEP = 0.2
+        self.turn_dir = 90.0
+        self.last_was_rotate = False
 
     def init_communications(self):
         self.publisher_displacement = self.create_publisher(Pose, "/displacement", 10 )
@@ -55,17 +58,28 @@ class Explorer_node(Node):
         if self.front_rs == []:
             self.rotating = False
             self.fowarding = True
+            self.last_was_rotate = False
         else:
             if min(self.front_rs) < 0.5:
-                self.target_angle = self.theta + 90.0
+                if not self.last_was_rotate:
+                    self.turn_dir = float(np.random.choice([-90.0, 90.0]))
+                self.target_angle = self.theta + self.turn_dir
+                self.last_was_rotate = True
                 self.rotating = True
                 self.fowarding = False
             else:
                 self.rotating = False
                 self.fowarding = True
+                self.last_was_rotate = False
 
     def foward_handler(self):
         if self.fowarding == True:
+            if np.hypot(self.x - self.last_x, self.y - self.last_y) >= self.STEP:
+                self.fowarding = False
+                d_moved = self.get_displacement()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
+                return
             if self.front_rs == []:
                 self.publisher_vel.publish(self.foward_msg)
             elif min(self.front_rs) >= 0.5:
@@ -79,7 +93,8 @@ class Explorer_node(Node):
     def rotate_handler(self):
         if self.rotating == True:
             err = (self.target_angle - self.theta + 180.0) % 360.0 - 180.0
-            if abs(err) > 1.0:
+            if abs(err) > 2.0:
+                self.rotate_msg.angular.z = float(np.copysign(0.8 if abs(err) > 15.0 else 0.3, err))
                 self.publisher_vel.publish(self.rotate_msg)
             else:
                 self.rotating = False
