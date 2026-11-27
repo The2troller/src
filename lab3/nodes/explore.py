@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+#? ^ Le dice a bash "ejecuta esto con python3" ^
 import rclpy
 from rclpy.node import Node
+
 from std_msgs.msg import Empty
 from geometry_msgs.msg import Pose, Twist
 from sensor_msgs.msg import LaserScan
@@ -23,11 +25,10 @@ class Explorer_node(Node):
         self.F_RANGE = 20.0
         self.x = None
         self.y = None
-        self.theta = None
         self.front_rs = []
-        self.scan_received = False
         self.fowarding = False
         self.rotating = False
+        self.theta = None
         self.last_x = None
         self.last_y = None
         self.last_theta = None
@@ -36,7 +37,7 @@ class Explorer_node(Node):
         self.last_was_rotate = False
 
     def init_communications(self):
-        self.publisher_displacement = self.create_publisher(Pose, "/displacement", 10)
+        self.publisher_displacement = self.create_publisher(Pose, "/displacement", 10 )
         self.subscription_client = self.create_subscription(Empty, "/explore", self.decide_move, 1)
         self.publisher_vel = self.create_publisher(Twist, "/cmd_vel", 10)
         self.subscription_odom = self.create_subscription(Odometry, "/odom", self.odom_rec, 1)
@@ -47,51 +48,59 @@ class Explorer_node(Node):
     def decide_move(self, msg):
         if self.fowarding or self.rotating:
             return
-        if self.x is None or self.y is None or self.theta is None or not self.scan_received:
+        if self.x == None or self.y == None or self.theta == None:
             return
             
         self.last_x = self.x
         self.last_y = self.y
         self.last_theta = self.theta
 
-        if len(self.front_rs) > 0 and min(self.front_rs) < 0.5:
-            if not self.last_was_rotate:
-                self.turn_dir = float(np.random.choice([-90.0, 90.0]))
-            self.target_angle = self.theta + self.turn_dir
-            self.last_was_rotate = True
-            self.rotating = True
-            self.fowarding = False
-        else:
+        if self.front_rs == []:
             self.rotating = False
             self.fowarding = True
             self.last_was_rotate = False
+        else:
+            if min(self.front_rs) < 0.5:
+                if not self.last_was_rotate:
+                    self.turn_dir = float(np.random.choice([-90.0, 90.0]))
+                self.target_angle = self.theta + self.turn_dir
+                self.last_was_rotate = True
+                self.rotating = True
+                self.fowarding = False
+            else:
+                self.rotating = False
+                self.fowarding = True
+                self.last_was_rotate = False
 
     def foward_handler(self):
-        if not self.fowarding:
-            return
-        if np.hypot(self.x - self.last_x, self.y - self.last_y) >= self.STEP:
-            self.fowarding = False
-            self.publisher_vel.publish(Twist())
-            self.publisher_displacement.publish(self.get_displacement())
-            return
-        if len(self.front_rs) == 0 or min(self.front_rs) >= 0.5:
-            self.publisher_vel.publish(self.foward_msg)
-        else:
-            self.fowarding = False
-            self.publisher_vel.publish(Twist())
-            self.publisher_displacement.publish(self.get_displacement())
+        if self.fowarding == True:
+            if np.hypot(self.x - self.last_x, self.y - self.last_y) >= self.STEP:
+                self.fowarding = False
+                d_moved = self.get_displacement()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
+                return 
+            if self.front_rs == []:
+                self.publisher_vel.publish(self.foward_msg)
+            elif min(self.front_rs) >= 0.5:
+                self.publisher_vel.publish(self.foward_msg)
+            else:
+                self.fowarding = False
+                d_moved = self.get_displacement()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
 
     def rotate_handler(self):
-        if not self.rotating:
-            return
-        err = (self.target_angle - self.theta + 180.0) % 360.0 - 180.0
-        if abs(err) > 2.0:
-            self.rotate_msg.angular.z = float(np.copysign(0.8 if abs(err) > 15.0 else 0.3, err))
-            self.publisher_vel.publish(self.rotate_msg)
-        else:
-            self.rotating = False
-            self.publisher_vel.publish(Twist())
-            self.publisher_displacement.publish(self.get_displacement())
+        if self.rotating == True:
+            err = (self.target_angle - self.theta + 180.0) % 360.0 - 180.0
+            if abs(err) > 2.0:
+                self.rotate_msg.angular.z = float(np.copysign(0.8 if abs(err) > 15.0 else 0.3, err))
+                self.publisher_vel.publish(self.rotate_msg)
+            else:
+                self.rotating = False
+                d_moved = self.get_displacement()
+                self.publisher_displacement.publish(d_moved)
+                self.publisher_vel.publish(Twist())
 
     def get_displacement(self):  
         dx = self.x - self.last_x
@@ -114,19 +123,25 @@ class Explorer_node(Node):
         self.theta = np.rad2deg(np.arctan2(sin_, cos_))
         
     def scan_rec(self, msg: LaserScan):
-        new_front_rs = []
-        for i, r in enumerate(msg.ranges):
-            theta = np.rad2deg(msg.angle_min + i * msg.angle_increment)
-            if abs(theta) < self.F_RANGE and r < msg.range_max:
-                new_front_rs.append(r)
-        self.front_rs = new_front_rs
-        self.scan_received = True
-
+        self.angle_inc = msg.angle_increment
+        self.ranges = msg.ranges
+        self.max_d = msg.range_max
+        self.angle_min = msg.angle_min
+        self.valid_rays = list()
+        for i in range(len(self.ranges)):
+            theta = np.rad2deg(self.angle_min + i * self.angle_inc)
+            r = self.ranges[i]
+            if abs(theta) <= self.max_angle and r < self.max_d:
+                self.valid_rays.append([theta, r])
+        self.front_rs = list()
+        for theta, r in self.valid_rays:
+            if (theta > -self.F_RANGE) and (theta < self.F_RANGE):
+                self.front_rs.append(r)
 def main(args=None):
-    rclpy.init(args=args)
-    node = Explorer_node()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    rclpy.init(args=args) #? Inicializa ROS
+    node = Explorer_node() #? Instancia de un nodo de clase MyNode
+    rclpy.spin(node) #? Permite ejecución continua de un nodo
+    rclpy.shutdown() #? Cierra el nodo al terminar la ejecución
     
 if __name__ == "__main__":
     main()
